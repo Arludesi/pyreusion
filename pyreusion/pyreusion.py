@@ -59,6 +59,9 @@ class DFTools:
         ON DUPLICATE KEY UPDATE {db_update_cols};
         """
         return sql
-        
+    
+    @classmethod
+    def test():
+        """"""
 
 
