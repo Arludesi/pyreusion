@@ -1,6 +1,4 @@
 # Pyreusion
-# Version 1.0
-
 #%%
 from pandas import DataFrame
 import re

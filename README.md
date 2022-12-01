@@ -11,6 +11,10 @@
 * or paste pyreusion.py to site-packages folder.
 
 ## Update
+* 1.0.3
+    * Fix import error
+    * Refine setup.bat logic
+
 * 1.0.2.3
     * Add DFTools.cols_lower()
     * Add DFTools.drop_unnamed_cols()
