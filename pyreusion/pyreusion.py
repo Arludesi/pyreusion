@@ -1,10 +1,13 @@
-# Pyreusion
 #%%
-from pandas import DataFrame
-import re
-from typing import Optional
-from pymysql.converters import escape_string
+# Pyreusion
+from datetime import datetime
 import logging
+import numpy as np
+from pandas import DataFrame
+from pandas.core.series import Series
+from pymysql.converters import escape_string
+import re
+from typing import Optional, Union
 
 
 #%%
@@ -13,26 +16,21 @@ class DFTools:
     """
 
     @classmethod
-    def cols_lower(cls, df: DataFrame, inplace: bool = False):
+    def cols_lower(cls, df: DataFrame, del_str: str = '', inplace: bool = False) -> DataFrame:
         """Make DataFrame columns name lower & replace special characters
         """
-        _df = df.copy()
-        new_cols = [re.sub('[^\w]', '_', col.strip()).lower() for col in df.columns]
-        _df.columns = new_cols
-        if inplace:
-            df.columns = new_cols
-            return df.head()
-        else:
-            return _df.head()
+        new_cols = {col: (re.sub('[^\w]', '_', col.strip().replace(del_str, '')).lower()) for col in df.columns}
+        logging.debug(f'{new_cols}')
+        return df.rename(columns=new_cols, inplace=inplace)
 
     @classmethod
-    def drop_unnamed_cols(cls, df: DataFrame, inplace: bool = False):
+    def drop_unnamed_cols(cls, df: DataFrame, inplace: bool = False) -> DataFrame:
         """Drop Unnamed__XX cols for DF read from read_excel().
         """
         drop_cols = [col for col in df.columns.tolist() if 'unnamed__' in col.lower()]
-        df.drop(columns=drop_cols, inplace=inplace)
-        return df.head()
-    
+        logging.debug(f'{drop_cols}')
+        return df.drop(columns=drop_cols, inplace=inplace)
+
     @classmethod
     def get_duplicate_update_sql(cls, df: DataFrame, schema: str, table: str, update_cols: Optional[list] = None):
         """Help to get the 'INSERT ON DUPLICATE KEY UPDATE' sql string.
@@ -59,9 +57,38 @@ class DFTools:
         ON DUPLICATE KEY UPDATE {db_update_cols};
         """
         return sql
+
+    @classmethod
+    def to_datetime(cls, series: Series, format: str = '%Y-%m-%d %H:%M:%S', fillna: Optional[str] = None):
+        """Turn 
+        """
+        series = series.astype('str')
+        if fillna is not None:
+            series.fillna(fillna, inplace=True)
+        series = series.apply(lambda x: datetime.strptime(x, format) if x is not np.nan else x)
+        return series
     
     @classmethod
-    def test():
-        """"""
-
-
+    def to_bool(cls, series: Series, na_value: Union[str, int, bool] = False, to_num: bool = False):
+        series = series.astype('str')
+        if na_value in ['0', 0, False]:
+            series.fillna('false', inplace=True)
+        else:
+            series.fillna('true', inplace=True)
+        series = series.apply(lambda x: x.lower() if x is not np.nan else x)
+        false_value = ['false', 'no', '0']
+        series = series.apply(lambda x: False if x in false_value else True)
+        if to_num:
+            series = series.apply(lambda x: 0 if x is False else 1)
+        return series
+    
+    @classmethod
+    def enhance_replace(series: Series, dict: dict, regex: bool = False):
+        series = series.astype('str')
+        for new_value in dict:
+            if regex:
+                pattern = '|'.join([old_value.lower() for old_value in dict[new_value]])
+                series = series.apply(lambda x: new_value if re.search(pattern, x.lower()) is not None else x)
+            else:
+                series = series.apply(lambda x: new_value if x in dict[new_value] else x)
+        return series

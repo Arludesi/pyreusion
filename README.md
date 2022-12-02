@@ -11,6 +11,11 @@
 * or paste pyreusion.py to site-packages folder.
 
 ## Update
+* 1.0.4
+    * Add DFTools.to_datetime()
+    * Add DFTools.to_bool()
+    * Add DFTools.enhance_replace()
+
 * 1.0.3
     * Fix import error
     * Refine setup.bat logic
