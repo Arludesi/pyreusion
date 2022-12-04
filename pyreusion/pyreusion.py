@@ -16,11 +16,16 @@ class DFTools:
     """
 
     @classmethod
-    def cols_lower(cls, df: DataFrame, del_str: str = '', inplace: bool = False) -> DataFrame:
+    def cols_lower(cls, df: DataFrame, inplace: bool = False) -> DataFrame:
         """Make DataFrame columns name lower & replace special characters
         """
-        new_cols = {col: (re.sub('[^\w]', '_', col.strip().replace(del_str, '')).lower()) for col in df.columns}
-        logging.debug(f'{new_cols}')
+        new_cols = {col: (re.sub('[^\w]', '_', col.strip()).lower()) for col in df.columns}
+        # delete extra underline
+        for col in new_cols:
+            while new_cols[col][0] == '_':
+                new_cols[col] = new_cols[col][1:]
+            while new_cols[col][-1] == '_':
+                new_cols[col] = new_cols[col][:-1]
         return df.rename(columns=new_cols, inplace=inplace)
 
     @classmethod
