@@ -65,7 +65,7 @@ class DFTools:
 
     @classmethod
     def to_datetime(cls, series: Series, format: str = '%Y-%m-%d %H:%M:%S', fillna: Optional[str] = None):
-        """Turn 
+        """Help to turn to [datetime] value type.
         """
         series = series.astype('str')
         if fillna is not None:
@@ -75,6 +75,8 @@ class DFTools:
     
     @classmethod
     def to_bool(cls, series: Series, na_value: Union[str, int, bool] = False, to_num: bool = False):
+        """Help to turn to [bool] value type.
+        """
         series = series.astype('str')
         if na_value in ['0', 0, False]:
             series.fillna('false', inplace=True)
@@ -88,7 +90,16 @@ class DFTools:
         return series
     
     @classmethod
-    def enhance_replace(series: Series, dict: dict, regex: bool = False):
+    def to_string(cls, series: Series):
+        """Help to turn to [string] value type.
+        """
+        series = series.astype('str')
+        series = series.apply(lambda x: x.replace('\n', ' '))
+        series = series.apply(lambda x: x[0: -2] if x[-2:] == '.0' else x)
+        return series
+    
+    @classmethod
+    def enhance_replace(cls, series: Series, dict: dict, regex: bool = False):
         series = series.astype('str')
         for new_value in dict:
             if regex:

@@ -11,6 +11,9 @@
 * or paste pyreusion.py to site-packages folder.
 
 ## Update
+* 1.0.5
+    * Add DFTools.to_string()
+
 * 1.0.4
     * Add DFTools.to_datetime()
     * Add DFTools.to_bool()
