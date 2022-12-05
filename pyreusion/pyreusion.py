@@ -158,7 +158,7 @@ class DFTools:
         for old in fillna_dict:
             fillna = fillna.replace(old, fillna_dict[old])
         s.fillna(fillna, inplace=True)
-        s.apply(lambda x: datetime.strptime(x, format).strftime('%Y-%m-%d %H:%M:%S'))
+        s = s.apply(lambda x: datetime.strptime(x, format).strftime('%Y-%m-%d %H:%M:%S'))
         return s
 
     @classmethod
@@ -211,7 +211,7 @@ class DFTools:
     def sql_df(
         cls,
         df: DataFrame,
-        datetime_cols: Optional[list] = None,
+        datetime_cols: Optional[Union[list, dict]] = None,
         bool_cols: Optional[list] = None,
         int_cols: Optional[list] = None,
         decimal_cols: Optional[list] = None,
@@ -219,9 +219,14 @@ class DFTools:
         df = df.copy()
         drop_cols = []
         # datetime
+        # BUG: It will return '2021-10-04 0000' don't know why 
+        #   but it run correct at single use...
         if datetime_cols is not None:
             df = cls.str_datetime_cols(df, datetime_cols)
-            drop_cols = [*drop_cols, *datetime_cols]
+            if datetime_cols is list:
+                drop_cols = [*drop_cols, *datetime_cols]
+            elif datetime_cols is dict:
+                drop_cols = [*drop_cols, *datetime_cols.keys()]
         # bool
         if bool_cols is not None:
             df = cls.str_bool_cols(df, bool_cols)
