@@ -11,6 +11,16 @@
 * or paste pyreusion.py to site-packages folder.
 
 ## Update
+* 1.0.6.0
+    * Add DFTools.str_datetime()
+    * Add DFTools.str_datetime_cols()
+    * Add DFTools.str_string_cols()
+    * Add DFTools.str_int_cols()
+    * Add DFTools.str_decimal_cols()
+    * Add DFTools.str_bool_cols()
+    * Add DFTools.to_decimal()
+    * Add DFTools.to_int()
+
 * 1.0.5
     * Add DFTools.to_string()
 
