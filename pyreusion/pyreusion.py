@@ -8,7 +8,13 @@ from pandas.core.series import Series
 from pymysql.converters import escape_string
 import re
 from typing import Optional, Union
+import emoji
 
+#%%
+class Filters:
+    @classmethod
+    def rep_emoji(cls, text: str, rep_value: str = ''):
+        return re.sub(':\S+?:', rep_value, emoji.demojize(text))
 
 #%%
 class DFTools:
@@ -16,11 +22,16 @@ class DFTools:
     """
 
     @classmethod
-    def cols_lower(cls, df: DataFrame, del_str: str = '', inplace: bool = False) -> DataFrame:
+    def cols_lower(cls, df: DataFrame, inplace: bool = False) -> DataFrame:
         """Make DataFrame columns name lower & replace special characters
         """
-        new_cols = {col: (re.sub('[^\w]', '_', col.strip().replace(del_str, '')).lower()) for col in df.columns}
-        logging.debug(f'{new_cols}')
+        new_cols = {col: (re.sub('[^\w]', '_', col.strip()).lower()) for col in df.columns}
+        # delete extra underline
+        for col in new_cols:
+            while new_cols[col][0] == '_':
+                new_cols[col] = new_cols[col][1:]
+            while new_cols[col][-1] == '_':
+                new_cols[col] = new_cols[col][:-1]
         return df.rename(columns=new_cols, inplace=inplace)
 
     @classmethod
@@ -60,16 +71,18 @@ class DFTools:
 
     @classmethod
     def to_datetime(cls, series: Series, format: str = '%Y-%m-%d %H:%M:%S', fillna: Optional[str] = None):
-        """Turn 
+        """Help to turn to [datetime] value type.
         """
-        series = series.astype('str')
         if fillna is not None:
             series.fillna(fillna, inplace=True)
-        series = series.apply(lambda x: datetime.strptime(x, format) if x is not np.nan else x)
+        series = series.astype('str')
+        series = series.apply(lambda x: datetime.strptime(x, format) if (x is not 'nan') or (x is not np.nan) else x)
         return series
-    
+
     @classmethod
     def to_bool(cls, series: Series, na_value: Union[str, int, bool] = False, to_num: bool = False):
+        """Help to turn to [bool] value type.
+        """
         series = series.astype('str')
         if na_value in ['0', 0, False]:
             series.fillna('false', inplace=True)
@@ -81,9 +94,43 @@ class DFTools:
         if to_num:
             series = series.apply(lambda x: 0 if x is False else 1)
         return series
+
+    @classmethod
+    def to_string(cls, series: Series, emoji_value: Optional[str] = None):
+        """Help to turn to [string] value type.
+        """
+        series = series.copy()
+        series.fillna('', inplace=True)
+        series = series.astype('str')
+        series = series.apply(lambda x: x.replace('\n', ' '))
+        series = series.apply(lambda x: x[0:-2] if x[-2:] == '.0' else x)
+        if emoji_value is not None:
+            series = series.apply(lambda x: Filters.rep_emoji(x, emoji_value))
+        return series
     
     @classmethod
-    def enhance_replace(series: Series, dict: dict, regex: bool = False):
+    def to_decimal(cls, series: Series):
+        """"""
+        series = series.copy()
+        series.fillna('0.0000', inplace=True)
+        series = series.astype('str')
+        series = series.astype('float64')
+        series = series.apply(lambda x: str(round(x, 4)))
+        return series
+    
+    @classmethod
+    def to_int(cls, series: Series, na_value: int = 0, to_str: bool = False):
+        series = series.copy()
+        series.fillna(na_value, inplace=True)
+        series = series.astype('str')
+        series = series.astype('int64')
+        if to_str:
+            series = series.apply(lambda x: str(x))
+        return series
+
+
+    @classmethod
+    def enhance_replace(cls, series: Series, dict: dict, regex: bool = False):
         series = series.astype('str')
         for new_value in dict:
             if regex:
@@ -92,3 +139,110 @@ class DFTools:
             else:
                 series = series.apply(lambda x: new_value if x in dict[new_value] else x)
         return series
+
+    @classmethod
+    def str_datetime(cls, series: Series, format: str = '%Y-%m-%d %H:%M:%S'):
+        """Makes the series value into [string like datetime] as arg format
+        """
+        s = series.copy()
+        fillna_dict = {
+            '%Y': '1677',
+            '%y': '1677',
+            '%m': '09',
+            '%d': '22',
+            '%H': '00',
+            '%M': '00',
+            '%S': '00',
+        }
+        fillna = format
+        for old in fillna_dict:
+            fillna = fillna.replace(old, fillna_dict[old])
+        s.fillna(fillna, inplace=True)
+        s = s.apply(lambda x: datetime.strptime(x, format).strftime('%Y-%m-%d %H:%M:%S'))
+        return s
+
+    @classmethod
+    def str_datetime_cols(cls, df: DataFrame, cols: Union[list, dict]):
+        """"""
+        df = df.copy()
+        for col in cols:
+            if type(cols) is dict:
+                format = cols[col]
+            elif type(cols) is list:
+                format = '%Y-%m-%d %H:%M:%S'
+            else:
+                raise ValueError
+            df[col] = cls.str_datetime(series=df[col], format=format)
+        return df
+    
+    @classmethod
+    def str_string_cols(cls, df: DataFrame, cols: list):
+        """"""
+        df = df.copy()
+        for col in cols:
+            df[col] = cls.to_string(series=df[col], emoji_value='')  # drop_emoji
+        return df
+
+    @classmethod
+    def str_bool_cols(cls, df: DataFrame, cols: list):
+        """"""
+        df = df.copy()
+        for col in cols:
+            df[col] = cls.to_bool(series=df[col], to_num=True)
+        return df
+    
+    @classmethod
+    def str_decimal_cols(cls, df: DataFrame, cols: list):
+        """"""
+        df = df.copy()
+        for col in cols:
+            df[col] = cls.to_decimal(series=df[col])
+        return df
+
+    @classmethod
+    def str_int_cols(cls, df: DataFrame, cols: list):
+        """"""
+        df = df.copy()
+        for col in cols:
+            df[col] = cls.to_int(series=df[col], to_str=True)
+        return df
+    
+    @classmethod
+    def sql_df(
+        cls,
+        df: DataFrame,
+        datetime_cols: Optional[Union[list, dict]] = None,
+        bool_cols: Optional[list] = None,
+        int_cols: Optional[list] = None,
+        decimal_cols: Optional[list] = None,
+        ):
+        df = df.copy()
+        drop_cols = []
+        # datetime
+        # BUG: It will return '2021-10-04 0000' don't know why 
+        #   but it run correct at single use...
+        if datetime_cols is not None:
+            df = cls.str_datetime_cols(df, datetime_cols)
+            if datetime_cols is list:
+                drop_cols = [*drop_cols, *datetime_cols]
+            elif datetime_cols is dict:
+                drop_cols = [*drop_cols, *datetime_cols.keys()]
+        # bool
+        if bool_cols is not None:
+            df = cls.str_bool_cols(df, bool_cols)
+            drop_cols = [*drop_cols, *bool_cols]
+        # int
+        if int_cols is not None:
+            df = cls.str_int_cols(df, int_cols)
+            drop_cols = [*drop_cols, *int_cols]
+        # decimal
+        if decimal_cols is not None:
+            df = cls.str_decimal_cols(df, decimal_cols)
+            drop_cols = [*drop_cols, *decimal_cols]
+        # string
+        str_cols = df.columns.tolist()
+        if drop_cols is not None:
+            for col in drop_cols:
+                str_cols.remove(col)
+        df = cls.str_string_cols(df, str_cols)
+        return df

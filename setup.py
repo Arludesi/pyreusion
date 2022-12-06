@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pyreusion",
-    version="1.0.4.3",
+    version="1.0.6.9",
     author="JoeYoung",
     author_email="1022104172@qq.com",
     description="Common method integration in the process of Python programming.",
