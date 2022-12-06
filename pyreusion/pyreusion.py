@@ -11,6 +11,23 @@ from typing import Optional, Union
 import emoji
 
 #%%
+class Converters:
+    @classmethod
+    def utc_to_datetime(cls, t: str, format: str = '%Y-%m-%dT%H:%M:%S%z', str_format: Optional[str] = None):
+        src_datetime = datetime.strptime(t, format)
+        utcoffset = src_datetime.utcoffset()
+        if utcoffset is not None:
+            dst_datetime = src_datetime + utcoffset
+        else:
+            dst_datetime = src_datetime
+        if str_format is not None:
+            if str_format == 'default':
+                str_format = '%Y-%m-%d %H:%M:%S'
+            dst_datetime = dst_datetime.strftime(str_format)
+        return dst_datetime
+
+
+#%%
 class Filters:
     @classmethod
     def rep_emoji(cls, text: str, rep_value: str = ''):
@@ -72,6 +89,8 @@ class DFTools:
     @classmethod
     def to_datetime(cls, series: Series, format: str = '%Y-%m-%d %H:%M:%S', fillna: Optional[str] = None):
         """Help to turn to [datetime] value type.
+        TODO: It will updated to support return datetime or string.
+            And now use str_datetime() to instead.
         """
         if fillna is not None:
             series.fillna(fillna, inplace=True)
@@ -153,12 +172,16 @@ class DFTools:
             '%H': '00',
             '%M': '00',
             '%S': '00',
-        }
+            '%z': '+00:00'
+        }  # The minimum Timestamp support value
         fillna = format
         for old in fillna_dict:
             fillna = fillna.replace(old, fillna_dict[old])
         s.fillna(fillna, inplace=True)
-        s = s.apply(lambda x: datetime.strptime(x, format).strftime('%Y-%m-%d %H:%M:%S'))
+        if '%z' in format:
+            s = s.apply(lambda x: Converters.utc_to_datetime(x, format, '%Y-%m-%d %H:%M:%S'))
+        else:
+            s = s.apply(lambda x: datetime.strptime(x, format).strftime('%Y-%m-%d %H:%M:%S'))
         return s
 
     @classmethod
@@ -219,13 +242,11 @@ class DFTools:
         df = df.copy()
         drop_cols = []
         # datetime
-        # BUG: It will return '2021-10-04 0000' don't know why 
-        #   but it run correct at single use...
         if datetime_cols is not None:
             df = cls.str_datetime_cols(df, datetime_cols)
-            if datetime_cols is list:
+            if type(datetime_cols) is list:
                 drop_cols = [*drop_cols, *datetime_cols]
-            elif datetime_cols is dict:
+            elif type(datetime_cols) is dict:
                 drop_cols = [*drop_cols, *datetime_cols.keys()]
         # bool
         if bool_cols is not None:
