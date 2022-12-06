@@ -17,7 +17,7 @@ class Converters:
         src_datetime = datetime.strptime(t, format)
         utcoffset = src_datetime.utcoffset()
         if utcoffset is not None:
-            dst_datetime = src_datetime + utcoffset
+            dst_datetime = src_datetime - utcoffset
         else:
             dst_datetime = src_datetime
         if str_format is not None:
