@@ -8,7 +8,7 @@ setup(
     description="Common method integration in the process of Python programming.",
     url="https://github.com/Arludesi/pyreusion.git", 
     python_requires='>=3.6',
-    classifiers=['License :: OSI Approved :: GNU General Public License version 3',],
+    classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)',],
     packages=find_packages(),
 
     tests_require=[
