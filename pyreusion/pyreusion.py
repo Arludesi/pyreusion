@@ -3,21 +3,23 @@
 from datetime import datetime
 import logging
 import numpy as np
-from pandas import DataFrame
+from pandas import DataFrame, isna
 from pandas.core.series import Series
 from pymysql.converters import escape_string
 import re
 from typing import Optional, Union
 import emoji
 
+
 #%%
 class Converters:
+
     @classmethod
     def utc_to_datetime(cls, t: str, format: str = '%Y-%m-%dT%H:%M:%S%z', str_format: Optional[str] = None):
         src_datetime = datetime.strptime(t, format)
         utcoffset = src_datetime.utcoffset()
         if utcoffset is not None:
-            dst_datetime = src_datetime + utcoffset
+            dst_datetime = src_datetime - utcoffset
         else:
             dst_datetime = src_datetime
         if str_format is not None:
@@ -29,9 +31,11 @@ class Converters:
 
 #%%
 class Filters:
+
     @classmethod
     def rep_emoji(cls, text: str, rep_value: str = ''):
         return re.sub(':\S+?:', rep_value, emoji.demojize(text))
+
 
 #%%
 class DFTools:
@@ -80,27 +84,15 @@ class DFTools:
         db_update_cols = ",".join([f'`{col}` = {aliased}.`{col}`' for col in update_cols])
         # concat SQL
         sql = f"""
-        INSERT INTO `{schema}`.`{table}` {db_import_cols}
-        VALUES {db_import_values} AS {aliased}
+        INSERT INTO `{schema}`.`{table}`
+        {db_import_cols} VALUES {db_import_values} AS {aliased}
         ON DUPLICATE KEY UPDATE {db_update_cols};
         """
         return sql
 
     @classmethod
-    def to_datetime(cls, series: Series, format: str = '%Y-%m-%d %H:%M:%S', fillna: Optional[str] = None):
-        """Help to turn to [datetime] value type.
-        TODO: It will updated to support return datetime or string.
-            And now use str_datetime() to instead.
-        """
-        if fillna is not None:
-            series.fillna(fillna, inplace=True)
-        series = series.astype('str')
-        series = series.apply(lambda x: datetime.strptime(x, format) if (x is not 'nan') or (x is not np.nan) else x)
-        return series
-
-    @classmethod
     def to_bool(cls, series: Series, na_value: Union[str, int, bool] = False, to_num: bool = False):
-        """Help to turn to [bool] value type.
+        """Help to turn into [bool] value type.
         """
         series = series.astype('str')
         if na_value in ['0', 0, False]:
@@ -116,7 +108,7 @@ class DFTools:
 
     @classmethod
     def to_string(cls, series: Series, emoji_value: Optional[str] = None):
-        """Help to turn to [string] value type.
+        """Help to turn into [string] value type.
         """
         series = series.copy()
         series.fillna('', inplace=True)
@@ -126,7 +118,7 @@ class DFTools:
         if emoji_value is not None:
             series = series.apply(lambda x: Filters.rep_emoji(x, emoji_value))
         return series
-    
+
     @classmethod
     def to_decimal(cls, series: Series):
         """"""
@@ -136,7 +128,7 @@ class DFTools:
         series = series.astype('float64')
         series = series.apply(lambda x: str(round(x, 4)))
         return series
-    
+
     @classmethod
     def to_int(cls, series: Series, na_value: int = 0, to_str: bool = False):
         series = series.copy()
@@ -147,20 +139,12 @@ class DFTools:
             series = series.apply(lambda x: str(x))
         return series
 
-
     @classmethod
-    def enhance_replace(cls, series: Series, dict: dict, regex: bool = False):
-        series = series.astype('str')
-        for new_value in dict:
-            if regex:
-                pattern = '|'.join([old_value.lower() for old_value in dict[new_value]])
-                series = series.apply(lambda x: new_value if re.search(pattern, x.lower()) is not None else x)
-            else:
-                series = series.apply(lambda x: new_value if x in dict[new_value] else x)
-        return series
-
-    @classmethod
-    def str_datetime(cls, series: Series, format: str = '%Y-%m-%d %H:%M:%S'):
+    def to_datetime(cls,
+                    series: Series,
+                    format: str = '%Y-%m-%d %H:%M:%S',
+                    to_str: bool = False,
+                    auto_fillna: bool = False):
         """Makes the series value into [string like datetime] as arg format
         """
         s = series.copy()
@@ -177,12 +161,32 @@ class DFTools:
         fillna = format
         for old in fillna_dict:
             fillna = fillna.replace(old, fillna_dict[old])
-        s.fillna(fillna, inplace=True)
+        if auto_fillna:
+            s.fillna(fillna, inplace=True)
         if '%z' in format:
-            s = s.apply(lambda x: Converters.utc_to_datetime(x, format, '%Y-%m-%d %H:%M:%S'))
+            if to_str:
+                s = s.apply(lambda x: Converters.utc_to_datetime(x, format, '%Y-%m-%d %H:%M:%S')
+                            if not isna(x) else np.nan)
+            else:
+                s = s.apply(lambda x: Converters.utc_to_datetime(x, format) if not isna(x) else np.nan)
         else:
-            s = s.apply(lambda x: datetime.strptime(x, format).strftime('%Y-%m-%d %H:%M:%S'))
+            if to_str:
+                s = s.apply(lambda x: datetime.strptime(x, format).strftime('%Y-%m-%d %H:%M:%S')
+                            if not isna(x) else np.nan)
+            else:
+                s = s.apply(lambda x: datetime.strptime(x, format) if not isna(x) else np.nan)
         return s
+
+    @classmethod
+    def enhance_replace(cls, series: Series, dict: dict, regex: bool = False):
+        series = series.astype('str')
+        for new_value in dict:
+            if regex:
+                pattern = '|'.join([old_value.lower() for old_value in dict[new_value]])
+                series = series.apply(lambda x: new_value if re.search(pattern, x.lower()) is not None else x)
+            else:
+                series = series.apply(lambda x: new_value if x in dict[new_value] else x)
+        return series
 
     @classmethod
     def str_datetime_cols(cls, df: DataFrame, cols: Union[list, dict]):
@@ -195,9 +199,9 @@ class DFTools:
                 format = '%Y-%m-%d %H:%M:%S'
             else:
                 raise ValueError
-            df[col] = cls.str_datetime(series=df[col], format=format)
+            df[col] = cls.to_datetime(series=df[col], format=format, to_str=True, auto_fillna=True)
         return df
-    
+
     @classmethod
     def str_string_cols(cls, df: DataFrame, cols: list):
         """"""
@@ -213,7 +217,7 @@ class DFTools:
         for col in cols:
             df[col] = cls.to_bool(series=df[col], to_num=True)
         return df
-    
+
     @classmethod
     def str_decimal_cols(cls, df: DataFrame, cols: list):
         """"""
@@ -229,7 +233,7 @@ class DFTools:
         for col in cols:
             df[col] = cls.to_int(series=df[col], to_str=True)
         return df
-    
+
     @classmethod
     def sql_df(
         cls,
@@ -238,7 +242,12 @@ class DFTools:
         bool_cols: Optional[list] = None,
         int_cols: Optional[list] = None,
         decimal_cols: Optional[list] = None,
-        ):
+    ):
+        """Help to organise the DF values into suitable SQL import format.
+            e.g. datetime-string: 'YYYY-MM-DD HH:MM:SS'
+                 decimal-string: '1234.6789'
+                 bool-int: 0 | 1
+        """
         df = df.copy()
         drop_cols = []
         # datetime

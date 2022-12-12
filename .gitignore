@@ -1,6 +1,7 @@
 # Ignore 
 temp_storage.py
 *.code-workspace
+upload_pypi.bat
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

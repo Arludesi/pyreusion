@@ -2,13 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name="pyreusion",
-    version="1.0.7.0",
+    version="1.0.8.1",
     author="JoeYoung",
     author_email="1022104172@qq.com",
     description="Common method integration in the process of Python programming.",
     url="https://github.com/Arludesi/pyreusion.git", 
     python_requires='>=3.6',
-    classifiers=['License :: OSI Approved :: GNU General Public License version 3',],
+    classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)',],
     packages=find_packages(),
 
     tests_require=[
