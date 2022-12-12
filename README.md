@@ -11,6 +11,10 @@
 * or paste pyreusion.py to site-packages folder.
 
 ## Update
+* 1.0.8.0
+    * Update DFTools.to_datetime()
+    * Daprecate DFTools.str_datetime()
+
 * 1.0.7.0
     * Add Converters.utc_to_datetime()
     * DFTools.str_datetime() support utc format
