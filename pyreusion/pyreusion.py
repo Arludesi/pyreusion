@@ -134,6 +134,7 @@ class DFTools:
         series = series.copy()
         series.fillna(na_value, inplace=True)
         series = series.astype('str')
+        series = series.astype('float64')
         series = series.astype('int64')
         if to_str:
             series = series.apply(lambda x: str(x))
