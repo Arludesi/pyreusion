@@ -11,6 +11,11 @@
 * or paste pyreusion.py to site-packages folder.
 
 ## Update
+* 1.0.9.0
+    * Refine DFTools.to_decimal() logic
+        * Default return type Decimal
+        * add to_str arg for return type str
+
 * 1.0.8.0
     * Update DFTools.to_datetime()
     * Daprecate DFTools.str_datetime()
