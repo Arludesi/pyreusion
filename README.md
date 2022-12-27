@@ -6,9 +6,13 @@
 * Python 3.6+
 
 ## Setup
-* git clone https://github.com/Arludesi/pyreusion.git
-* run setup.bat
-* or paste pyreusion.py to site-packages folder.
+* pip
+   * pip install pyreusion
+* git
+   * git clone https://github.com/Arludesi/pyreusion.git
+   * run setup.bat
+* source code
+   * git & paste pyreusion.py to site-packages folder.
 
 ## Update
 * 1.0.9.0
