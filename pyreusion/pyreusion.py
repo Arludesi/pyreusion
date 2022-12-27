@@ -6,6 +6,7 @@ import numpy as np
 from pandas import DataFrame, isna
 from pandas.core.series import Series
 from pymysql.converters import escape_string
+from decimal import Decimal
 import re
 from typing import Optional, Union
 import emoji
@@ -120,13 +121,14 @@ class DFTools:
         return series
 
     @classmethod
-    def to_decimal(cls, series: Series):
+    def to_decimal(cls, series: Series, to_str: bool = False):
         """"""
         series = series.copy()
         series.fillna('0.0000', inplace=True)
         series = series.astype('str')
-        series = series.astype('float64')
-        series = series.apply(lambda x: str(round(x, 4)))
+        series = series.apply(lambda x: Decimal(x))
+        if to_str:
+            series = series.apply(lambda x: str(x))
         return series
 
     @classmethod
@@ -224,7 +226,7 @@ class DFTools:
         """"""
         df = df.copy()
         for col in cols:
-            df[col] = cls.to_decimal(series=df[col])
+            df[col] = cls.to_decimal(series=df[col], to_str=True)
         return df
 
     @classmethod
