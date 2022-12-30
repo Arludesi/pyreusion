@@ -10,6 +10,86 @@ from decimal import Decimal
 import re
 from typing import Optional, Union
 import emoji
+import zipfile
+import os
+from chardet import detect
+
+
+#%%
+class Operations:
+    """"""
+
+    @classmethod
+    def unzip_file(cls, fp: str, dest_fp: str):
+        flag = False
+        if zipfile.is_zipfile(fp):
+            with zipfile.ZipFile(fp, 'r') as zipf:
+                zipf.extractall(dest_fp)
+                flag = True
+        return {'fp': fp, 'flag': flag}
+
+    @classmethod
+    def chk_file(cls, path: str) -> bool:
+        """Checks whether the file in the folder
+        """
+        try:
+            os.stat(path)
+            return True
+        except FileNotFoundError:
+            return False
+
+    @classmethod
+    def ls(cls,
+           dir: str,
+           by: str = 'name',
+           reverse: bool = False,
+           pattern: str = '.*',
+           drop_folder: bool = False,
+           flags: re.RegexFlag = 0):
+        """Get the sorted filename from dir & selected by regex
+
+        Args:
+            dir: folder path.
+            by: sorted type.
+                support: 'name'|'ctime'|'mtime'
+            reverse: reverse order.
+            pattern: regular expression.
+            drop_folder: drop the name which is folder
+            flags: regex matching strategy.
+        """
+        if by == 'name':
+            lsdir = sorted(os.listdir(dir), reverse=reverse)
+        elif by == 'ctime':
+            lsdir = sorted(os.listdir(dir), key=lambda x: os.stat(os.path.join(dir, x)).st_ctime, reverse=reverse)
+        elif by == 'mtime':
+            lsdir = sorted(os.listdir(dir), key=lambda x: os.stat(os.path.join(dir, x)).st_mtime, reverse=reverse)
+        else:
+            raise ValueError
+        listdir = [name for name in lsdir if re.search(pattern=pattern, string=name, flags=flags)]
+        if drop_folder:
+            listdir = [name for name in listdir if not os.path.isdir(os.path.join(dir, name))]
+        return listdir
+
+    @classmethod
+    def get_encoding(cls, fp: str):
+        """Get file encoding.
+        Help to use the correct encoding for pandas reading.
+        """
+        encoding_dict = {
+            'Windows-1254': 'ISO8859-9',
+            'ascii': 'ansi',
+            'cp936': 'cp936',
+            'utf-8': 'utf8',
+        }
+
+        with open(fp, 'rb') as f:
+            encoding = detect(f.read())['encoding']
+        try:
+            suggestion = encoding_dict[encoding]
+        except KeyError:
+            suggestion = None
+
+        return (encoding, suggestion)
 
 
 #%%
@@ -28,6 +108,31 @@ class Converters:
                 str_format = '%Y-%m-%d %H:%M:%S'
             dst_datetime = dst_datetime.strftime(str_format)
         return dst_datetime
+
+    @classmethod
+    def turn_docstr_dict(cls, refer: Union[str, list, dict], value=None) -> dict:
+        """Turn docstr to dict
+        Make the docstring-dict like {a.b.c: 1}
+            to normal dict like {a: {b: {c: 1}}}
+        """
+        if type(refer) is dict:
+            key_list = list(refer.keys())[0].split('.')
+            value = list(refer.values())[0]
+        elif type(refer) is list:
+            key_list = refer
+            value = value
+        elif type(refer) is str:
+            key_list = refer.split('.')
+            value = value
+        else:
+            key_list = []
+        flag = True
+        while flag:
+            try:
+                value = {key_list.pop(): value}
+            except IndexError:
+                flag = False
+        return value  # type: ignore
 
 
 #%%

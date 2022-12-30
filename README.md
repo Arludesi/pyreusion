@@ -15,6 +15,14 @@
    * git & paste pyreusion.py to site-packages folder.
 
 ## Update
+* 1.1.0.0
+    * Add Operations
+        * Add Operations.unzip_file()
+        * Add Operations.chk_file()
+        * Add Operations.ls()
+        * Add Operations.get_encoding()
+    * Add Converters.turn_docstr_dict()
+
 * 1.0.9.0
     * Refine DFTools.to_decimal() logic
         * Default return type Decimal
