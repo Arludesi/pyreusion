@@ -94,6 +94,7 @@ class Operations:
 
 #%%
 class Converters:
+    """Common data converters"""
 
     @classmethod
     def utc_to_datetime(cls, t: str, format: str = '%Y-%m-%dT%H:%M:%S%z', str_format: Optional[str] = None):
